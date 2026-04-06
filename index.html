@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>💪 Gym Tracker</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0a0a0a" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --bg1: #111111;
+    --bg2: #161616;
+    --bg3: #1e1e1e;
+    --border: #222222;
+    --text: #eeeeee;
+    --muted: #555555;
+    --muted2: #333333;
+    --bench: #4FC3F7;
+    --dead: #FF7043;
+    --squat: #66BB6A;
+    --gold: #FFD54F;
+    --red: #EF5350;
+    --green: #66BB6A;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+  body { overflow-x: hidden; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+    flex-direction: column; gap: 24px;
+  }
+  #login-screen h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+  #login-screen p  { color: var(--muted); font-size: 13px; }
+  .login-box { background: var(--bg1); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; width: 320px; }
+  .login-box input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; color: var(--text); font-size: 16px; font-family: inherit;
+    margin-bottom: 12px; letter-spacing: 2px;
+  }
+  .login-box input:focus { outline: none; border-color: var(--bench); }
+  .btn-primary {
+    width: 100%; background: var(--bench); color: #000; border: none; border-radius: 10px;
+    padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    transition: opacity .15s;
+  }
+  .btn-primary:hover { opacity: .85; }
+  .login-err { color: var(--red); font-size: 12px; text-align: center; margin-top: 8px; display: none; }
+
+  /* ── APP ── */
+  #app { display: none; max-width: 560px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* header */
+  .app-header { margin-bottom: 20px; }
+  .app-header .label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+  .app-header h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .app-header .sync-btn { font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: inherit; margin-left: 8px; }
+  .app-header .sync-btn:hover { color: var(--bench); }
+
+  /* tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; background: var(--bg1); border-radius: 10px; padding: 4px; border: 1px solid var(--border); }
+  .tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; border-radius: 7px; cursor: pointer; color: var(--muted); border: none; background: none; font-family: inherit; transition: all .15s; }
+  .tab.active { background: var(--bg3); color: var(--text); }
+
+  /* PR strip */
+  .pr-strip { display: flex; gap: 8px; margin-bottom: 16px; }
+  .pr-card { flex: 1; background: var(--bg1); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .pr-card .label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .pr-card .value { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 700; }
+  .pr-card .sub   { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* chart */
+  .chart-wrap { background: var(--bg1); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+  .chart-wrap .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  canvas { width: 100% !important; border-radius: 6px; }
+
+  /* day cards */
+  .day-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .day-date { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700; letter-spacing: -1px; }
+  .day-meta { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+  .mood-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .day-prs { text-align: right; font-family: 'DM Mono', monospace; font-size: 11px; }
+  .day-meals { font-size: 11px; color: #4a4a4a; margin-bottom: 6px; line-height: 1.5; }
+  .day-notes { font-size: 11px; color: #3d3d3d; margin-bottom: 10px; font-style: italic; }
+
+  /* macros inline */
+  .macro-strip { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .macro-pill { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--muted); }
+  .macro-pill span { color: var(--text); font-weight: 600; }
+
+  /* exercise accordion */
+  .ex-list { border-top: 1px solid var(--bg3); padding-top: 10px; }
+  .ex-row { border-bottom: 1px solid var(--bg2); }
+  .ex-toggle { width: 100%; background: none; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-family: inherit; }
+  .ex-toggle .left { display: flex; align-items: center; gap: 8px; }
+  .ex-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .ex-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .ex-pr-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+  .ex-arrow { color: var(--muted2); font-size: 10px; }
+  .ex-body { padding: 10px 0 4px 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 4px 8px; color: var(--muted); font-size: 10px; font-weight: 500; border-bottom: 1px solid var(--bg3); text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--bg2); color: #ccc; }
+
+  /* macro tab */
+  .macro-form { background: var(--bg1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .macro-form h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .field input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 14px; font-family: inherit; }
+  .field input:focus { outline: none; border-color: var(--bench); }
+  .save-btn { margin-top: 12px; width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; }
+  .save-btn:hover { background: var(--bg3); }
+
+  /* weight chart */
+  .weight-chart { background: var(--bg1); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+
+  /* loading */
+  #loading { text-align: center; color: var(--muted); padding: 60px 0; font-size: 13px; display: none; }
+
+  /* bottom nav */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg1); border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 0; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); z-index: 100; }
+  .nav-btn { flex: 1; max-width: 100px; background: none; border: none; padding: 6px 0; color: var(--muted); font-size: 10px; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: color .15s; }
+  .nav-btn .icon { font-size: 20px; }
+  .nav-btn.active { color: var(--bench); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div style="text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">💪</div>
+    <h1>Gym Tracker</h1>
+    <p>Acceso privado</p>
+  </div>
+  <div class="login-box">
+    <input type="password" id="pwd-input" placeholder="Contraseña" autocomplete="current-password" />
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="login-err">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <div class="label">Training Log</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h1>💪 Gym Tracker</h1>
+      <button class="sync-btn" onclick="loadData()">↻ Sync</button>
+    </div>
+  </div>
+
+  <div id="loading">Cargando datos...</div>
+
+  <!-- TAB: ENTRENOS -->
+  <div id="view-entrenos">
+    <div class="pr-strip" id="pr-strip"></div>
+    <div class="chart-wrap">
+      <div class="label">Progreso — Peso máximo por sesión</div>
+      <canvas id="main-chart" height="180"></canvas>
+    </div>
+    <div id="log-list"></div>
+  </div>
+
+  <!-- TAB: MACROS -->
+  <div id="view-macros" style="display:none">
+    <div class="macro-form">
+      <h3>📝 Registrar hoy</h3>
+      <div class="field" style="margin-bottom:10px">
+        <label>Fecha</label>
+        <input type="date" id="m-date" />
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Calorías (kcal)</label><input type="number" id="m-cals" placeholder="2200" /></div>
+        <div class="field"><label>Proteína (g)</label><input type="number" id="m-protein" placeholder="160" /></div>
+        <div class="field"><label>Carbohidratos (g)</label><input type="number" id="m-carbs" placeholder="220" /></div>
+        <div class="field"><label>Grasas (g)</label><input type="number" id="m-fat" placeholder="70" /></div>
+        <div class="field"><label>Agua (L)</label><input type="number" id="m-water" step="0.1" placeholder="2.5" /></div>
+        <div class="field"><label>Peso corporal (kg)</label><input type="number" id="m-weight" step="0.1" placeholder="82.0" /></div>
+        <div class="field"><label>% Grasa corporal</label><input type="number" id="m-bodyfat" step="0.1" placeholder="15.0" /></div>
+      </div>
+      <button class="save-btn" onclick="saveMacros()">Guardar en Notion →</button>
+      <div id="save-status" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;display:none"></div>
+    </div>
+
+    <div class="weight-chart">
+      <div class="label">Peso corporal</div>
+      <canvas id="weight-chart" height="150"></canvas>
+    </div>
+    <div class="weight-chart">
+      <div class="label">% Grasa corporal</div>
+      <canvas id="fat-chart" height="150"></canvas>
+    </div>
+    <div class="weight-chart">
+      <div class="label">Calorías diarias</div>
+      <canvas id="cals-chart" height="150"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none">
+  <button class="nav-btn active" onclick="switchTab('entrenos')" id="nav-entrenos">
+    <span class="icon">🏋️</span><span>Entrenos</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('macros')" id="nav-macros">
+    <span class="icon">🥗</span><span>Macros</span>
+  </button>
+</nav>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────
+const PASSWORD_HASH = "REPLACE_PASSWORD_HASH"; // replaced at build time
+const API_BASE = "/api/notion";
+
+// ─── AUTH ──────────────────────────────────────────────────────────
+async function hashStr(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+async function doLogin() {
+  const pwd = document.getElementById("pwd-input").value;
+  const hash = await hashStr(pwd);
+  if (hash === PASSWORD_HASH) {
+    sessionStorage.setItem("gt_auth", hash);
+    showApp();
+  } else {
+    document.getElementById("login-err").style.display = "block";
+  }
+}
+
+document.getElementById("pwd-input").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+function checkAuth() {
+  const saved = sessionStorage.getItem("gt_auth");
+  if (saved === PASSWORD_HASH) showApp();
+}
+
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("bottom-nav").style.display = "flex";
+  loadData();
+  // Set today's date in macro form
+  document.getElementById("m-date").value = new Date().toISOString().slice(0,10);
+}
+
+// ─── DATA ──────────────────────────────────────────────────────────
+let state = { logs: [], prs: {} };
+
+async function loadData() {
+  document.getElementById("loading").style.display = "block";
+  try {
+    const res = await fetch(`${API_BASE}?action=all`);
+    const data = await res.json();
+    state = data;
+    render();
+  } catch(e) {
+    console.error(e);
+  }
+  document.getElementById("loading").style.display = "none";
+}
+
+// ─── SAVE MACROS ───────────────────────────────────────────────────
+async function saveMacros() {
+  const btn = document.querySelector(".save-btn");
+  const status = document.getElementById("save-status");
+  btn.disabled = true;
+  btn.textContent = "Guardando...";
+  status.style.display = "block";
+  status.textContent = "";
+
+  const body = {
+    date:    document.getElementById("m-date").value,
+    cals:    parseFloat(document.getElementById("m-cals").value)    || null,
+    protein: parseFloat(document.getElementById("m-protein").value) || null,
+    carbs:   parseFloat(document.getElementById("m-carbs").value)   || null,
+    fat:     parseFloat(document.getElementById("m-fat").value)     || null,
+    water:   parseFloat(document.getElementById("m-water").value)   || null,
+    weight:  parseFloat(document.getElementById("m-weight").value)  || null,
+    bodyfat: parseFloat(document.getElementById("m-bodyfat").value) || null,
+  };
+
+  try {
+    await fetch(`${API_BASE}?action=macros`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    status.textContent = "✅ Guardado en Notion";
+    status.style.color = "var(--green)";
+    setTimeout(() => loadData(), 1500);
+  } catch(e) {
+    status.textContent = "❌ Error al guardar";
+    status.style.color = "var(--red)";
+  }
+  btn.disabled = false;
+  btn.textContent = "Guardar en Notion →";
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────
+const COLORS = { bench: "#4FC3F7", deadlift: "#FF7043", squats: "#66BB6A" };
+const MOOD_COLORS = { "😄": "#66BB6A","🙂": "#4FC3F7","😐": "#FFD54F","😔": "#FF8A65","😫": "#EF5350" };
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const [,m,d] = iso.split("-");
+  return `${d}.${m}`;
+}
+
+function render() {
+  renderPRs();
+  renderChart();
+  renderLogs();
+  renderMacroCharts();
+}
+
+function renderPRs() {
+  const labels = { bench: "Bench", deadlift: "Dead Lift", squats: "Squats" };
+  const colors = COLORS;
+  const strip = document.getElementById("pr-strip");
+  strip.innerHTML = Object.entries(labels).map(([k, label]) => {
+    const pr = state.prs[k];
+    return `<div class="pr-card" style="border-color:${colors[k]}22">
+      <div class="label">${label}</div>
+      <div class="value" style="color:${colors[k]}">${pr?.kg ? pr.kg+"kg" : "—"}</div>
+      <div class="sub">${pr?.date ? fmtDate(pr.date) : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderLogs() {
+  const exDefs = [
+    ["bench",    "🏋️ Bench Press", COLORS.bench],
+    ["deadlift", "💀 Dead Lift",   COLORS.dead],
+    ["squats",   "🦵 Squats",      COLORS.squat],
+  ];
+
+  const list = document.getElementById("log-list");
+  if (!state.logs.length) { list.innerHTML = `<div style="text-align:center;color:var(--muted);padding:40px 0;font-size:13px">Sin entrenos registrados</div>`; return; }
+
+  list.innerHTML = state.logs.map(log => {
+    const emoji = log.mood?.split(" ")[0] || "😐";
+    const moodColor = MOOD_COLORS[emoji] || "#888";
+    const dateLabel = fmtDate(log.date);
+
+    const prBadges = exDefs
+      .filter(([k]) => log.exercises?.[k]?.pr)
+      .map(([k,,c]) => `<div style="color:${c};font-size:10px">${k==="bench"?"BP":k==="deadlift"?"DL":"SQ"} ${log.exercises[k].pr}kg</div>`)
+      .join("");
+
+    const macroPills = log.macros ? `
+      <div class="macro-strip">
+        ${log.macros.cals    ? `<div class="macro-pill">🔥 <span>${log.macros.cals}</span>kcal</div>` : ""}
+        ${log.macros.protein ? `<div class="macro-pill">🥩 <span>${log.macros.protein}g</span> prot</div>` : ""}
+        ${log.macros.weight  ? `<div class="macro-pill">⚖️ <span>${log.macros.weight}kg</span></div>` : ""}
+        ${log.macros.bodyfat ? `<div class="macro-pill">📊 <span>${log.macros.bodyfat}%</span> grasa</div>` : ""}
+      </div>` : "";
+
+    const exRows = exDefs.map(([key, label, color]) => {
+      const ex = log.exercises?.[key];
+      const hasSets = ex && (ex.s1reps || ex.s2reps || ex.s3reps || ex.s4reps);
+      return `
+        <div class="ex-row">
+          <button class="ex-toggle" onclick="toggleEx(this)">
+            <div class="left">
+              <span class="ex-dot" style="background:${ex ? color : "var(--muted2)"}"></span>
+              <span class="ex-name" style="color:${ex ? "var(--text)" : "var(--muted2)"}">${label}</span>
+              ${ex?.pr ? `<span class="ex-pr-badge" style="color:${color};background:${color}18">${ex.pr}kg</span>` : ""}
+            </div>
+            <span class="ex-arrow">${ex ? "▼" : "—"}</span>
+          </button>
+          ${ex ? `<div class="ex-body" style="display:none">
+            ${hasSets ? `<table>
+              <tr><th>Serie</th><th>Reps</th><th>Kg</th></tr>
+              ${[1,2,3,4].filter(i => ex["s"+i+"reps"] != null).map(i => `
+                <tr>
+                  <td style="color:var(--muted);font-size:10px">S${i}</td>
+                  <td style="color:${ex["s"+i+"reps"]===0?"var(--red)":"#ccc"}">${ex["s"+i+"reps"]===0?"❌":ex["s"+i+"reps"]}</td>
+                  <td style="color:${ex["s"+i+"kg"]===ex.pr&&ex.pr>0?"var(--gold)":"#ccc"};font-weight:${ex["s"+i+"kg"]===ex.pr&&ex.pr>0?700:400}">${ex["s"+i+"kg"]}kg</td>
+                </tr>`).join("")}
+            </table>` : ""}
+            ${ex.notas ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;font-style:italic">${ex.notas}</div>` : ""}
+          </div>` : ""}
+        </div>`;
+    }).join("");
+
+    return `<div class="day-card">
+      <div class="day-header">
+        <div>
+          <div class="day-date">${dateLabel}</div>
+          <div class="day-meta">
+            ${log.mood ? `<span class="mood-dot" style="background:${moodColor}"></span>${log.mood}` : ""}
+            ${log.sleep ? `<span style="color:var(--muted2)">💤 ${log.sleep}h</span>` : ""}
+          </div>
+        </div>
+        <div class="day-prs">${prBadges}</div>
+      </div>
+      ${log.meals ? `<div class="day-meals">🍽 ${log.meals}</div>` : ""}
+      ${log.notes ? `<div class="day-notes">${log.notes}</div>` : ""}
+      ${macroPills}
+      <div class="ex-list">${exRows}</div>
+    </div>`;
+  }).join("");
+}
+
+function toggleEx(btn) {
+  const body = btn.nextElementSibling;
+  if (!body) return;
+  const open = body.style.display !== "none";
+  body.style.display = open ? "none" : "block";
+  btn.querySelector(".ex-arrow").textContent = open ? "▼" : "▲";
+}
+
+// ─── CHARTS ────────────────────────────────────────────────────────
+function drawLineChart(canvasId, datasets, opts = {}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const displayW = canvas.parentElement.clientWidth - 24;
+  const displayH = parseInt(canvas.getAttribute("height")) || 180;
+  canvas.style.width  = displayW + "px";
+  canvas.style.height = displayH + "px";
+  canvas.width  = displayW * dpr;
+  canvas.height = displayH * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const W = displayW, H = displayH;
+  const pad = { top: 20, right: 16, bottom: 36, left: 44 };
+  const iW = W - pad.left - pad.right;
+  const iH = H - pad.top - pad.bottom;
+
+  ctx.fillStyle = "#0f0f0f";
+  ctx.fillRect(0, 0, W, H);
+
+  const allVals = datasets.flatMap(d => d.points.map(p => p.y)).filter(v => v != null);
+  if (!allVals.length) return;
+  const minV = Math.max(0, Math.min(...allVals) - (opts.pad || 5));
+  const maxV = Math.max(...allVals) + (opts.pad || 5);
+  const labels = opts.labels || [];
+  const n = labels.length || datasets[0].points.length;
+
+  const xPos = i => pad.left + (n <= 1 ? iW/2 : (i / (n-1)) * iW);
+  const yPos = v => pad.top + iH - ((v - minV) / (maxV - minV)) * iH;
+
+  // Grid
+  for (let g = 0; g <= 4; g++) {
+    const y = pad.top + (g/4) * iH;
+    ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + iW, y); ctx.stroke();
+    const val = Math.round(maxV - (g/4)*(maxV-minV));
+    ctx.fillStyle = "#444"; ctx.font = `10px 'DM Mono', monospace`; ctx.textAlign = "right";
+    ctx.fillText((opts.suffix||"") + val, pad.left - 4, y + 4);
+  }
+
+  // X labels
+  labels.forEach((l, i) => {
+    ctx.fillStyle = "#444"; ctx.font = `9px 'DM Mono', monospace`; ctx.textAlign = "center";
+    ctx.fillText(l, xPos(i), H - 8);
+  });
+
+  // Lines
+  datasets.forEach(ds => {
+    const valid = ds.points.map((p,i) => ({...p,i})).filter(p => p.y != null);
+    if (!valid.length) return;
+    ctx.shadowColor = ds.color; ctx.shadowBlur = 8;
+    ctx.strokeStyle = ds.color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    valid.forEach((p, vi) => {
+      const x = xPos(p.i), y = yPos(p.y);
+      vi === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.stroke(); ctx.shadowBlur = 0;
+    valid.forEach(p => {
+      const x = xPos(p.i), y = yPos(p.y);
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+      ctx.fillStyle = ds.color; ctx.fill();
+      if (opts.showLabels !== false) {
+        ctx.fillStyle = "#fff"; ctx.font = `bold 9px 'DM Mono', monospace`; ctx.textAlign = "center";
+        ctx.fillText(p.y + (opts.unit||""), x, y - 8);
+      }
+    });
+  });
+
+  // Legend
+  if (datasets.length > 1) {
+    let lx = pad.left;
+    datasets.forEach(ds => {
+      ctx.fillStyle = ds.color; ctx.fillRect(lx, H - 22, 10, 2);
+      ctx.fillStyle = "#666"; ctx.font = `9px 'DM Mono', monospace`; ctx.textAlign = "left";
+      ctx.fillText(ds.label||"", lx + 14, H - 14);
+      lx += ds.label ? ds.label.length * 6 + 24 : 80;
+    });
+  }
+}
+
+function renderChart() {
+  const sorted = [...state.logs].sort((a,b) => a.date.localeCompare(b.date));
+  const labels = sorted.map(l => fmtDate(l.date));
+  const toPoints = key => sorted.map((l,i) => ({ y: l.exercises?.[key]?.pr || null, i }));
+
+  drawLineChart("main-chart", [
+    { color: COLORS.bench,    label: "Bench Press", points: toPoints("bench") },
+    { color: COLORS.deadlift, label: "Dead Lift",   points: toPoints("deadlift") },
+    { color: COLORS.squats,   label: "Squats",      points: toPoints("squats") },
+  ], { labels, pad: 10, unit: "kg" });
+}
+
+function renderMacroCharts() {
+  const sorted = [...state.logs].filter(l => l.macros).sort((a,b) => a.date.localeCompare(b.date));
+  const labels = sorted.map(l => fmtDate(l.date));
+
+  drawLineChart("weight-chart", [{
+    color: "#4FC3F7", label: "Peso", points: sorted.map((l,i) => ({ y: l.macros?.weight, i }))
+  }], { labels, unit: "kg", pad: 2 });
+
+  drawLineChart("fat-chart", [{
+    color: "#FF8A65", label: "% Grasa", points: sorted.map((l,i) => ({ y: l.macros?.bodyfat, i }))
+  }], { labels, unit: "%", pad: 1 });
+
+  drawLineChart("cals-chart", [{
+    color: "#FFD54F", label: "Kcal", points: sorted.map((l,i) => ({ y: l.macros?.cals, i }))
+  }], { labels, unit: "", pad: 100 });
+}
+
+// ─── TABS ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById("view-entrenos").style.display = tab === "entrenos" ? "block" : "none";
+  document.getElementById("view-macros").style.display   = tab === "macros"   ? "block" : "none";
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("nav-" + tab).classList.add("active");
+  if (tab === "macros") renderMacroCharts();
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────
+checkAuth();
+window.addEventListener("resize", () => { renderChart(); renderMacroCharts(); });
+</script>
+</body>
+</html>
